@@ -44,10 +44,9 @@ extends:
         featureFlags:
           autoBaseline: true
     sdl:
-      ${{ if parameters.AutoBaseline }}:
-        autoBaseline:
-          isMainPipeline: true
-          enableForGitHub: true
+      autoBaseline:
+        isMainPipeline: true
+        enableForGitHub: true
       sourceAnalysisPool:
         name: azsdk-pool-mms-win-2022-general
         image: azsdk-pool-mms-win-2022-1espt
