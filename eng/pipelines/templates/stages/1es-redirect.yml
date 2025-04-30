@@ -44,7 +44,7 @@ extends:
         featureFlags:
           autoBaseline: true
     sdl:
-      autoBaseline:
+      autobaseline:
         isMainPipeline: true
         enableForGitHub: true
       sourceAnalysisPool:
