@@ -1,13 +1,15 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-use crate::generated::{
-    clients::{QueueClient as GeneratedQueueClient, QueueClientOptions},
-    models::*,
-};
+use crate::clients::{sas_token_policy::create_sas_token_policy, QueueClientOptions};
+use crate::generated::clients::QueueClient as GeneratedQueueClient;
+use crate::models::*;
+
 use azure_core::{
     credentials::TokenCredential,
-    http::{NoFormat, RawResponse, RequestContent, Response, StatusCode, Url, XmlFormat},
+    http::{
+        ClientOptions, NoFormat, RawResponse, RequestContent, Response, StatusCode, Url, XmlFormat,
+    },
     xml, Bytes, Result,
 };
 use std::sync::Arc;
@@ -63,6 +65,44 @@ impl QueueClient {
             queue_name.to_string(),
             Some(options),
         )?;
+        Ok(Self {
+            endpoint: endpoint.parse()?,
+            client,
+        })
+    }
+
+    /// Creates a new QueueClient using SAS Token.
+    ///
+    /// # Arguments
+    ///
+    /// * `endpoint` - The full URL of the Azure storage account, for example `https://<storage_account_name>.queue.core.windows.net/`
+    /// * `queue_name` - The name of the queue to interact with
+    /// * `sas_token` - The SAS token for authentication
+    /// * `options` - Optional configuration for the client
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Result` containing the new `QueueClient` if successful, or an error if the endpoint URL is invalid
+    pub fn from_sas_token(
+        endpoint: &str,
+        queue_name: &str,
+        sas_token: &str,
+        options: Option<QueueClientOptions>,
+    ) -> Result<Self> {
+        let auth_policy = create_sas_token_policy(sas_token.to_string());
+
+        // TODO: Need to ensure that the other per_try_policies are preserved, now we are overriding them with the SAS token policy.
+        let options = Some(QueueClientOptions {
+            client_options: ClientOptions {
+                per_try_policies: vec![auth_policy],
+                ..Default::default()
+            },
+            ..options.unwrap_or_default()
+        });
+
+        let client =
+            GeneratedQueueClient::with_no_credential(endpoint, queue_name.to_string(), options)?;
+
         Ok(Self {
             endpoint: endpoint.parse()?,
             client,

@@ -6,9 +6,12 @@ use azure_storage_queue::models::{
 };
 
 mod helpers;
-use helpers::endpoint::{get_endpoint, get_secondary_endpoint};
-use helpers::logs::log_operation_result;
-use helpers::random_queue_name::get_random_queue_name;
+use helpers::{
+    endpoint::{get_endpoint, get_secondary_endpoint},
+    logs::log_operation_result,
+    queue_client_operations,
+    random_queue_name::get_random_queue_name,
+};
 
 use azure_identity::DefaultAzureCredential;
 use azure_storage_queue::clients::QueueServiceClient;
@@ -129,22 +132,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let endpoint = get_endpoint();
 
     let queue_name = get_random_queue_name();
-    let queue_client = QueueServiceClient::new(&endpoint, credential.clone(), None)?;
+    let queue_service_client = QueueServiceClient::new(&endpoint, credential.clone(), None)?;
+    // let queue_service_client = QueueServiceClient::from_sas_token(
+    //     &endpoint,
+    //     "sv=2024-11-04&ss=bfqt&srt=sco&sp=rwdlacupiytfx&se=2025-07-03T19:22:17Z&st=2025-07-03T11:22:17Z&spr=https&sig=REDACTED_SIGNATURE",
+    //     None
+    // )?;
 
     // Create and manage queue
-    let result = queue_client.create_queue(&queue_name, None).await;
+    let result = queue_service_client.create_queue(&queue_name, None).await;
     log_operation_result(&result, "create_queue");
 
-    set_and_get_properties(&queue_client).await?;
+    // Using the queue client retrieved from queue service client to perform operations
+    {
+        let queue_client = queue_service_client.queue_client(queue_name.to_string());
+        queue_client_operations::peek_and_receive_messages(&queue_client).await?;
+    }
+
+    set_and_get_properties(&queue_service_client).await?;
 
     // List queues
-    list_queues(&queue_client).await?;
+    list_queues(&queue_service_client).await?;
 
     // Get statistics
     get_statistics(credential.clone()).await?;
 
     // Cleanup
-    let result = queue_client.delete_queue(&queue_name, None).await;
+    let result = queue_service_client.delete_queue(&queue_name, None).await;
     log_operation_result(&result, "delete_queue");
 
     Ok(())

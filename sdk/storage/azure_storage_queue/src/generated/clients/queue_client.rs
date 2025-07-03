@@ -83,6 +83,41 @@ impl QueueClient {
         })
     }
 
+    /// Creates a new QueueClient requiring no authentication.
+    ///
+    /// # Arguments
+    ///
+    /// * `endpoint` - Service host
+    /// * `queue_name` - The name of the queue.
+    /// * `options` - Optional configuration for the client.
+    pub fn with_no_credential(
+        endpoint: &str,
+        queue_name: String,
+        options: Option<QueueClientOptions>,
+    ) -> Result<Self> {
+        let options = options.unwrap_or_default();
+        let mut endpoint = Url::parse(endpoint)?;
+        if !endpoint.scheme().starts_with("http") {
+            return Err(azure_core::Error::message(
+                azure_core::error::ErrorKind::Other,
+                format!("{endpoint} must use http(s)"),
+            ));
+        }
+        endpoint.set_query(None);
+        Ok(Self {
+            endpoint,
+            queue_name,
+            version: options.version,
+            pipeline: Pipeline::new(
+                option_env!("CARGO_PKG_NAME"),
+                option_env!("CARGO_PKG_VERSION"),
+                options.client_options,
+                Vec::default(),
+                Vec::default(),
+            ),
+        })
+    }
+
     /// Returns the Url associated with this client.
     pub fn endpoint(&self) -> &Url {
         &self.endpoint

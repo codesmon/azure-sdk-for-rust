@@ -13,10 +13,4 @@ pub mod models {
     pub use crate::generated::models::*;
 }
 
-pub mod clients {
-    mod queue_client;
-    mod queue_service_client;
-    pub use self::queue_client::QueueClient;
-    pub use self::queue_service_client::QueueServiceClient;
-    pub use crate::generated::clients::{QueueClientOptions, QueueServiceClientOptions};
-}
+pub mod clients;
